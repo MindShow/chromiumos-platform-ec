@@ -270,7 +270,7 @@ const char *system_get_chip_name(void)
 
 const char *system_get_chip_revision(void)
 {
-	return "";
+	return "stm32";
 }
 
 int system_get_vbnvcontext(uint8_t *block)

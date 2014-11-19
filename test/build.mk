@@ -25,6 +25,9 @@ test-list-$(BOARD_RYU)=
 # now.
 test-list-$(BOARD_SAMUS_PD)=
 
+# Llama has issues when building tests. Disable them.
+test-list-$(BOARD_LLAMA)=
+
 # Emulator tests
 test-list-host=mutex pingpong utils kb_scan kb_mkbp lid_sw power_button hooks
 test-list-host+=thermal flash queue kb_8042 extpwr_gpio console_edit system

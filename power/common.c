@@ -357,9 +357,11 @@ static void siglog_deferred(void)
 	unsigned int i;
 	timestamp_t tdiff = {.val = 0};
 
+#ifndef CHIP_FAMILY_STM32F0
 	/* Disable interrupts for input signals while we print stuff.*/
 	for (i = 0; i < POWER_SIGNAL_COUNT; i++)
 		gpio_disable_interrupt(power_signal_list[i].gpio);
+#endif
 
 	CPRINTF("%d signal changes:\n", siglog_entries);
 	for (i = 0; i < siglog_entries; i++) {

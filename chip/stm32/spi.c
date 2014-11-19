@@ -262,6 +262,7 @@ static void reply(stm32_dma_chan_t *txdma,
  */
 static void tx_status(uint8_t byte)
 {
+#if !defined(BOARD_LLAMA)
 	stm32_spi_regs_t *spi = STM32_SPI1_REGS;
 
 	spi->dr = byte;
@@ -272,6 +273,7 @@ static void tx_status(uint8_t byte)
 	spi->dr = byte;
 	spi->dr = byte;
 	spi->dr = byte;
+#endif
 #endif
 }
 
@@ -416,7 +418,12 @@ static void spi_send_response_packet(struct host_packet *pkt)
 	 * set setup_transaction_later to 1.
 	 */
 	state = SPI_STATE_SENDING;
-	check_setup_transaction_later();
+
+
+#if !defined(BOARD_LLAMA)
+	/* Remove it if it's LLAMA project, to let the SPI master receive the data. */
+	check_setup_transaction_later(); 
+#endif 
 }
 
 /**
@@ -440,6 +447,7 @@ void spi_event(enum gpio_signal signal)
 
 	/* Check chip select.  If it's high, the AP ended a transaction. */
 	nss_reg = gpio_get_level_reg(GPIO_SPI1_NSS, &nss_mask);
+
 	if (REG16(nss_reg) & nss_mask) {
 		/*
 		 * If the buffer is still used by the host command, postpone

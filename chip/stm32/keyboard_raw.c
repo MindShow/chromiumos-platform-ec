@@ -68,9 +68,21 @@ test_mockable void keyboard_raw_drive_column(int out)
 
 			if (out == KEYBOARD_COLUMN_ALL) {
 				/* drive low (clear bit) */
+#if defined(BOARD_LLAMA)
+				/* Invert the GPIO_KB_OUT02 because the Holeless IC pin is inverted*/ 
+				if(j == GPIO_KB_OUT02)
+					bsrr |= gpio_list[j].mask;
+				else
+#endif
 				bsrr |= gpio_list[j].mask << 16;
 			} else if (out == KEYBOARD_COLUMN_NONE) {
 				/* put output in hi-Z state (set bit) */
+#if defined(BOARD_LLAMA)
+				/* Invert the GPIO_KB_OUT02 because the Holeless IC pin is inverted*/
+				if(j == GPIO_KB_OUT02)
+					bsrr |= gpio_list[j].mask << 16;                  
+				else
+#endif
 				bsrr |= gpio_list[j].mask;
 			} else if (j - GPIO_KB_OUT00 == out) {
 				/*
@@ -80,7 +92,13 @@ test_mockable void keyboard_raw_drive_column(int out)
 				 * first, then assert specified output.
 				 */
 				keyboard_raw_drive_column(KEYBOARD_COLUMN_NONE);
-				bsrr |= gpio_list[j].mask << 16;
+#if defined(BOARD_LLAMA)
+				/* Invert the GPIO_KB_OUT02 because the Holeless IC pin is inverted*/
+				if(j == GPIO_KB_OUT02)
+					bsrr |= gpio_list[j].mask;
+				else
+#endif
+					bsrr |= gpio_list[j].mask << 16;
 				done = 1;
 				break;
 			}

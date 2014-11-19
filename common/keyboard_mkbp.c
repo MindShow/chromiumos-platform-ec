@@ -146,8 +146,9 @@ test_mockable int keyboard_fifo_add(const uint8_t *buffp)
 
 kb_fifo_push_done:
 
-	if (ret == EC_SUCCESS)
+	if (ret == EC_SUCCESS){
 		set_host_interrupt(1);
+	}
 
 	return ret;
 }
