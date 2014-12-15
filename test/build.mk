@@ -29,6 +29,9 @@ test-list-$(BOARD_LLAMA)=
 # now.
 test-list-$(BOARD_SAMUS_PD)=
 
+# oak has issue when building tests
+test-list-$(BOARD_OAK)=
+
 # Emulator tests
 test-list-host=mutex pingpong utils kb_scan kb_mkbp lid_sw power_button hooks
 test-list-host+=thermal flash queue kb_8042 extpwr_gpio console_edit system

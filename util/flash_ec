@@ -70,6 +70,7 @@ BOARDS_STM32=(
 	mighty
 	minimuffin
 	nyan
+	oak
 	pinky
 	pit
 	plankton
