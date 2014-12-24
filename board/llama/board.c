@@ -71,13 +71,13 @@ int board_discharge_on_ac(int enable)
 
 void board_config_pre_init(void)
 {
-	/* Do noting */
+	/* Do nothing */
 }
 
 /* Initialize board. */
 static void board_init(void)
 {
-	/* Do noting */
+	/* Do nothing */
 }
 
 DECLARE_HOOK(HOOK_INIT, board_init, HOOK_PRIO_DEFAULT);

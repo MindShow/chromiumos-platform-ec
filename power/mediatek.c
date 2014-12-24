@@ -4,7 +4,7 @@
  */
 
 /*
- * MT8135 SoC power sequencing module for Chrome EC
+ * MEDIATEK SoC power sequencing module for Chrome EC
  *
  * This implements the following features:
  *
@@ -596,9 +596,9 @@ enum power_state power_handle_state(enum power_state state)
 	return state;
 }
 
-static void powerbtn_llama_changed(void)
+static void powerbtn_mtk_changed(void)
 {
 	task_wake(TASK_ID_CHIPSET);
 }
 
-DECLARE_HOOK(HOOK_POWER_BUTTON_CHANGE, powerbtn_llama_changed, HOOK_PRIO_DEFAULT);
+DECLARE_HOOK(HOOK_POWER_BUTTON_CHANGE, powerbtn_mtk_changed, HOOK_PRIO_DEFAULT);

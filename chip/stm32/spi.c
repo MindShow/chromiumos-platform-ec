@@ -263,7 +263,7 @@ static void reply(stm32_dma_chan_t *txdma,
  */
 static void tx_status(uint8_t byte)
 {
-#ifndef CONFIG_CHIPSET_MEDIATEK
+#ifndef BOARD_LLAMA
 	stm32_spi_regs_t *spi = STM32_SPI1_REGS;
 
 	spi->dr = byte;
@@ -275,7 +275,7 @@ static void tx_status(uint8_t byte)
 	spi->dr = byte;
 	spi->dr = byte;
 #endif
-#endif //CONFIG_CHIPSET_MEDIATEK
+#endif /* BOARD_LLAMA */
 }
 
 /**
@@ -419,7 +419,7 @@ static void spi_send_response_packet(struct host_packet *pkt)
 	 * set setup_transaction_later to 1.
 	 */
 	state = SPI_STATE_SENDING;
-#ifndef CONFIG_CHIPSET_MEDIATEK
+#ifndef BOARD_LLAMA
 	check_setup_transaction_later();
 #endif
 }
