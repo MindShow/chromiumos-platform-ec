@@ -297,9 +297,11 @@ enum power_state power_chipset_init(void)
 		if (power_get_signals() & IN_POWER_GOOD) {
 			CPRINTS("SOC ON\n");
 			init_power_state = POWER_S0;
+			disable_sleep(SLEEP_MASK_AP_RUN);
 		} else {
 			CPRINTS("SOC OFF\n");
 			init_power_state = POWER_G3;
+			enable_sleep(SLEEP_MASK_AP_RUN);
 		}
 	}
 
