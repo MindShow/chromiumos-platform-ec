@@ -1,28 +1,28 @@
-/* Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+/* Copyright 2015 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
 /* llama board configuration */
 
+#include "battery.h"
+#include "charger.h"
 #include "chipset.h"
 #include "common.h"
+#include "console.h"
+#include "extpower.h"
 #include "gpio.h"
 #include "hooks.h"
-#include "registers.h"
-#include "task.h"
-#include "util.h"
 #include "i2c.h"
-#include "spi.h"
 #include "keyboard_raw.h"
-#include "extpower.h"
-#include "charger.h"
-#include "power_button.h"
 #include "lid_switch.h"
 #include "power.h"
-#include "console.h"
+#include "power_button.h"
 #include "pwm.h"
 #include "pwm_chip.h"
-#include "battery.h"
+#include "registers.h"
+#include "spi.h"
+#include "task.h"
+#include "util.h"
 
 #define CPRINTS(format, args...) cprints(CC_CHIPSET, format, ## args)
 #define CPRINTF(format, args...) cprintf(CC_CHIPSET, format, ## args)
@@ -37,6 +37,7 @@ const struct power_signal_info power_signal_list[] = {
 	{GPIO_SOC_POWER_GOOD_L, 0, "POWER_GOOD#"},	/* Active low */
 	{GPIO_SUSPEND_L, 0, "SUSPEND#_ASSERTED"},	/* Active low */
 };
+
 BUILD_ASSERT(ARRAY_SIZE(power_signal_list) == POWER_SIGNAL_COUNT);
 
 #ifdef CONFIG_PWM
@@ -45,6 +46,7 @@ const struct pwm_t pwm_channels[] = {
 	{STM32_TIM(2), STM32_TIM_CH(3),
 	 PWM_CONFIG_ACTIVE_LOW, GPIO_LED_POWER_L},
 };
+
 BUILD_ASSERT(ARRAY_SIZE(pwm_channels) == PWM_CH_COUNT);
 #endif
 
@@ -71,13 +73,16 @@ int board_discharge_on_ac(int enable)
 
 void board_config_pre_init(void)
 {
-	/* Do nothing */
-}
+	/* enable SYSCFG clock */
+	STM32_RCC_APB2ENR |= 1 << 0;
 
-/* Initialize board. */
-static void board_init(void)
-{
-	/* Do nothing */
+	/* Remap USART DMA to match the USART driver */
+	/*
+	 * the DMA mapping is :
+	 *  Chan 2 : TIM1_CH1
+	 *  Chan 3 : SPI1_TX
+	 *  Chan 4 : USART1_TX
+	 *  Chan 5 : USART1_RX
+	 */
+	STM32_SYSCFG_CFGR1 |= (1 << 9) | (1 << 10); /* Remap USART1 RX/TX DMA */
 }
-
-DECLARE_HOOK(HOOK_INIT, board_init, HOOK_PRIO_DEFAULT);

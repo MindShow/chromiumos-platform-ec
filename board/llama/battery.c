@@ -1,7 +1,6 @@
 #include "battery.h"
 
 static const struct battery_info info = {
-
 	.voltage_max = 8700,
 	.voltage_normal = 7600,
 	.voltage_min = 6000,

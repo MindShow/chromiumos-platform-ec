@@ -1,15 +1,15 @@
-/* Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+/* Copyright 2015 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  *
  * Battery LED and Power LED control for LLAMA Board.
  */
 
-#include "gpio.h"
-#include "hooks.h"
 #include "battery.h"
 #include "charge_state.h"
 #include "chipset.h"
+#include "gpio.h"
+#include "hooks.h"
 #include "led_common.h"
 #include "util.h"
 
@@ -40,14 +40,14 @@ static int bat_led_set(enum led_color color, int on)
 	return EC_SUCCESS;
 }
 
-void led_get_brightness_range(enum ec_led_id led_id, uint8_t * brightness_range)
+void led_get_brightness_range(enum ec_led_id led_id, uint8_t *brightness_range)
 {
 	/* Ignoring led_id as both leds support the same colors */
 	brightness_range[EC_LED_COLOR_GREEN] = 1;
 	brightness_range[EC_LED_COLOR_YELLOW] = 1;
 }
 
-int led_set_brightness(enum ec_led_id led_id, const uint8_t * brightness)
+int led_set_brightness(enum ec_led_id led_id, const uint8_t *brightness)
 {
 	if (EC_LED_ID_BATTERY_LED == led_id) {
 		if (brightness[EC_LED_COLOR_GREEN] != 0) {
@@ -64,7 +64,6 @@ int led_set_brightness(enum ec_led_id led_id, const uint8_t * brightness)
 	} else {
 		return EC_ERROR_UNKNOWN;
 	}
-
 }
 
 static void llama_led_set_power(void)
@@ -85,7 +84,6 @@ static void llama_led_set_power(void)
 	else if (chipset_in_state(CHIPSET_STATE_SUSPEND))
 		bat_led_set(LED_GREEN, (power_second & 3) ? 0 : 1);
 }
-
 
 static void llama_led_set_battery(void)
 {

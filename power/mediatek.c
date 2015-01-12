@@ -1,4 +1,4 @@
-/* Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+/* Copyright 2015 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -26,18 +26,18 @@
  */
 
 #include "battery.h"
-#include "chipset.h"  /* ./common/chipset.c implements chipset functions too */
+#include "chipset.h" /* ./common/chipset.c implements chipset functions too */
 #include "common.h"
 #include "gpio.h"
 #include "hooks.h"
-#include "lid_switch.h"
 #include "keyboard_scan.h"
+#include "lid_switch.h"
 #include "power.h"
 #include "power_button.h"
 #include "power_led.h"
-#include "test_util.h"
 #include "system.h"
 #include "task.h"
+#include "test_util.h"
 
 #define CPRINTS(format, args...) cprints(CC_CHIPSET, format, ## args)
 
@@ -54,12 +54,12 @@
  * The minimum time to assert the PMIC PWRON pin is 20ms.
  * Give it longer to ensure the PMIC doesn't lose it.
  */
-#define PMIC_PWRON_DEBOUNCE_TIME  (20 * MSEC * 3)
+#define PMIC_PWRON_DEBOUNCE_TIME  (60 * MSEC)
 
 /*
  * The time to bootup the PMIC from power-off to power-on.
  */
-#define PMIC_PWRON_PRESS_TIME   (1000 * MSEC * 3)
+#define PMIC_PWRON_PRESS_TIME   (3000 * MSEC)
 
 /*
  * The minimum time to assert the PMIC THERM pin is 32us. However,
@@ -113,13 +113,40 @@ enum power_request_t {
 
 static enum power_request_t power_request;
 
+/**
+ * Return values for check_for_power_off_event().
+ */
+enum power_off_event_t {
+	POWER_OFF_CANCEL,
+	POWER_OFF_BY_POWER_BUTTON_PRESSED,
+	POWER_OFF_BY_LONG_PRESS,
+	POWER_OFF_BY_POWER_GOOD_LOST,
+	POWER_OFF_BY_POWER_REQ,
+
+	POWER_OFF_EVENT_COUNT,
+};
+
+/**
+ * Return values for check_for_power_on_event().
+ */
+enum power_on_event_t {
+	POWER_ON_CANCEL,
+	POWER_ON_BY_IN_POWER_GOOD,
+	POWER_ON_BY_AUTO_POWER_ON,
+	POWER_ON_BY_LID_OPEN,
+	POWER_ON_BY_POWER_BUTTON_PRESSED,
+	POWER_ON_BY_POWER_REQ_NONE,
+
+	POWER_ON_EVENT_COUNT,
+};
+
 /* Forward declaration */
 static void chipset_turn_off_power_rails(void);
 
 /**
  * Set the AP RESET signal.
  *
- * This fucntion is for backward-compatible.
+ * This function is for backward-compatible.
  *
  * AP_RESET_H (PB3) is stuffed before rev <= 2.0 and connected to PMIC RESET.
  * After rev >= 2.2, this is removed. This should not effected the new board.
@@ -131,7 +158,7 @@ static void set_ap_reset(int asserted)
 {
 	/* Signal is active-high */
 	CPRINTS("set_ap_reset(%d)", asserted);
-	gpio_set_level(GPIO_AP_RESET_H, asserted ? 1 : 0);
+	gpio_set_level(GPIO_AP_RESET_H, asserted);
 }
 
 /**
@@ -146,7 +173,7 @@ static void set_pmic_pwron(int asserted)
 {
 	/* Signal is active-high */
 	CPRINTS("set_pmic_pwron(%d)", asserted);
-	gpio_set_level(GPIO_PMIC_PWRON_H, asserted ? 1 : 0);
+	gpio_set_level(GPIO_PMIC_PWRON_H, asserted);
 }
 
 /**
@@ -157,7 +184,8 @@ static void set_pmic_pwron(int asserted)
 static void set_pmic_warm_reset(int asserted)
 {
 	/* Signal is active-high */
-	gpio_set_level(GPIO_PMIC_WARM_RESET_H, asserted ? 1 : 0);
+	/* @param asserted: Resetting (=0) or idle (=1) */
+	gpio_set_level(GPIO_PMIC_WARM_RESET_H, asserted);
 }
 
 /**
@@ -177,10 +205,11 @@ static int check_for_power_off_event(void)
 	 * Check for power button press.
 	 */
 	if (power_button_is_pressed()) {
-		pressed = 1;
+		pressed = POWER_OFF_BY_POWER_BUTTON_PRESSED;
 	} else if (power_request == POWER_REQ_OFF) {
 		power_request = POWER_REQ_NONE;
-		return 4;	/* return non-zero for shudown down */
+		/* return non-zero for shudown down */
+		return POWER_OFF_BY_POWER_REQ;
 	}
 
 #ifdef HAS_TASK_KEYSCAN
@@ -213,7 +242,7 @@ static int check_for_power_off_event(void)
 			power_off_deadline.val = 0;
 			CPRINTS("power off after long press now=%u, %u",
 				now.le.lo, power_off_deadline.le.lo);
-			return 2;
+			return POWER_OFF_BY_LONG_PRESS;
 		}
 	} else if (power_button_was_pressed) {
 		CPRINTS("power off cancel");
@@ -227,9 +256,9 @@ static int check_for_power_off_event(void)
 
 	/* POWER_GOOD released by AP : shutdown immediately */
 	if (!power_has_signals(IN_POWER_GOOD))
-		return 3;
+		return POWER_OFF_BY_POWER_GOOD_LOST;
 
-	return 0;
+	return POWER_OFF_CANCEL;
 }
 
 static void llama_lid_event(void)
@@ -275,8 +304,8 @@ enum power_state power_chipset_init(void)
 	}
 
 	/* Leave power off only if requested by reset flags */
-	if (!(reset_flags & RESET_FLAG_AP_OFF)
-	    && !(reset_flags & RESET_FLAG_SYSJUMP)) {
+	if (!(reset_flags & RESET_FLAG_AP_OFF) &&
+	    !(reset_flags & RESET_FLAG_SYSJUMP)) {
 		CPRINTS("reset_flag 0x%x", reset_flags);
 		auto_power_on = 1;
 	}
@@ -298,7 +327,7 @@ static void chipset_turn_off_power_rails(void)
 	/* Release the power on pin, if it was asserted */
 	set_pmic_pwron(0);
 	/* Close the pmic power source immediately */
-	//set_pmic_source(0);
+	/* set_pmic_source(0); */
 
 	usleep(PMIC_THERM_HOLD_TIME);
 
@@ -336,13 +365,13 @@ static int check_for_power_on_event(void)
 	/* check if system is already ON */
 	if (power_get_signals() & IN_POWER_GOOD) {
 		if (ap_off_flag) {
-			CPRINTS("system is on, but " "RESET_FLAG_AP_OFF is on");
-			return 0;
+			CPRINTS("system is on, but RESET_FLAG_AP_OFF is on");
+			return POWER_ON_CANCEL;
 		} else {
 			CPRINTS("system is on, thus clear " "auto_power_on");
 			/* no need to arrange another power on */
 			auto_power_on = 0;
-			return 1;
+			return POWER_ON_BY_IN_POWER_GOOD;
 		}
 	} else {
 		CPRINTS("POWER_GOOD is not asserted");
@@ -351,25 +380,25 @@ static int check_for_power_on_event(void)
 	/* power on requested at EC startup for recovery */
 	if (auto_power_on) {
 		auto_power_on = 0;
-		return 2;
+		return POWER_ON_BY_AUTO_POWER_ON;
 	}
 
 	/* Check lid open */
 	if (lid_opened) {
 		lid_opened = 0;
-		return 3;
+		return POWER_ON_BY_LID_OPEN;
 	}
 
 	/* check for power button press */
 	if (power_button_is_pressed())
-		return 4;
+		return POWER_ON_BY_POWER_BUTTON_PRESSED;
 
 	if (power_request == POWER_REQ_ON) {
 		power_request = POWER_REQ_NONE;
-		return 5;
+		return POWER_ON_BY_POWER_REQ_NONE;
 	}
 
-	return 0;
+	return POWER_OFF_CANCEL;
 }
 
 /**
@@ -395,6 +424,7 @@ static void power_on(void)
 	t = get_time().val;
 	if (t < PMIC_RTC_STARTUP) {
 		uint32_t wait = PMIC_RTC_STARTUP - t;
+
 		CPRINTS("wait for %dms for PMIC RTC start-up", wait / MSEC);
 		usleep(wait);
 	}
@@ -410,12 +440,11 @@ static void power_on(void)
 	usleep(PMIC_PWRON_PRESS_TIME);
 
 	/* Wait till the AP has SPI ready */
-	//usleep(PMIC_SPI_READY_TIME);
+	/* usleep(PMIC_SPI_READY_TIME); */
 
 	/* enable interrupt */
 	gpio_set_flags(GPIO_SUSPEND_L, INT_BOTH_PULL_UP);
 	gpio_set_flags(GPIO_EC_INT, GPIO_OUTPUT | GPIO_OUT_HIGH);
-
 
 	disable_sleep(SLEEP_MASK_AP_RUN);
 #ifdef HAS_TASK_POWERLED
@@ -469,7 +498,8 @@ static void power_off(void)
 	chipset_turn_off_power_rails();
 
 	/* Change SUSPEND_L pin to high-Z to reduce power draw. */
-	gpio_set_flags(power_signal_list[MTK_SUSPEND_ASSERTED].gpio, GPIO_INPUT);
+	gpio_set_flags(power_signal_list[MTK_SUSPEND_ASSERTED].gpio,
+		       GPIO_INPUT);
 
 	lid_opened = 0;
 	enable_sleep(SLEEP_MASK_AP_RUN);
@@ -570,8 +600,9 @@ enum power_state power_handle_state(enum power_state state)
 			CPRINTS("power off %d", value);
 			power_off();
 			return POWER_S0S3;
-		} else if (power_get_signals() & IN_SUSPEND)
+		} else if (power_get_signals() & IN_SUSPEND) {
 			return POWER_S0S3;
+		}
 		return state;
 
 	case POWER_S0S3:

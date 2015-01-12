@@ -1,4 +1,4 @@
-/* Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+/* Copyright 2015 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -37,12 +37,10 @@
 #define CONFIG_BOARD_VERSION
 #undef CONFIG_UART_CONSOLE
 #define CONFIG_UART_CONSOLE 1
-#undef CONFIG_UART_RX_DMA
-#undef CONFIG_UART_TX_DMA
 
 /* Hibernate is not supported on STM32F0.*/
 #undef CONFIG_HIBERNATE
-/* #define CONFIG_HIBERNATE_WAKEUP_PINS (STM32_PWR_CSR_EWUP1 | STM32_PWR_CSR_EWUP6) */
+/* #define CONFIG_HIBERNATE_WAKEUP_PINS STM32_PWR_CSR_EWUP1 */
 
 /*
  * Allow dangerous commands all the time, since we don't have a write protect
@@ -88,9 +86,11 @@ enum pwm_channel {
 };
 
 /* Charger module */
-#define CONFIG_CHARGER_SENSE_RESISTOR 10	/* Charge sense resistor, mOhm */
-#define CONFIG_CHARGER_SENSE_RESISTOR_AC 10	/* Input sensor resistor, mOhm */
-#define CONFIG_CHARGER_INPUT_CURRENT 2150	/* mA, based on Link HW design */
+/* Charge sense resistor */
+#define CONFIG_CHARGER_SENSE_RESISTOR 10 /* mOhm */
+/* Input sensor resistor */
+#define CONFIG_CHARGER_SENSE_RESISTOR_AC 10 /* mOhm */
+#define CONFIG_CHARGER_INPUT_CURRENT 2150 /* mA */
 
 /* Discharge battery when on AC power for factory test. */
 int board_discharge_on_ac(int enable);
